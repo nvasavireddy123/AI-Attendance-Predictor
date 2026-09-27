@@ -1,0 +1,363 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Attendance Predictor</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            min-height: 100vh;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 850px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+
+        .input-box {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 7px;
+            color: #444;
+        }
+
+        input {
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            margin-top: 25px;
+            border: none;
+            border-radius: 10px;
+            background: #667eea;
+            color: white;
+            font-size: 17px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #5568d8;
+        }
+
+        .result {
+            display: none;
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 15px;
+            background: #f5f7ff;
+        }
+
+        .result h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .card h3 {
+            font-size: 14px;
+            color: #777;
+            margin-bottom: 10px;
+        }
+
+        .card p {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .prediction {
+            margin-top: 20px;
+            text-align: center;
+            padding: 18px;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .safe {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .shortage {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .message {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 16px;
+            color: #555;
+        }
+
+        @media (max-width: 650px) {
+            .form-grid,
+            .cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🎓 AI Attendance Predictor</h1>
+
+    <p class="subtitle">
+        Predict your future attendance and check whether you are safe.
+    </p>
+
+    <div class="form-grid">
+
+        <div class="input-box">
+            <label>Student Name</label>
+            <input type="text" id="studentName" placeholder="Enter student name">
+        </div>
+
+        <div class="input-box">
+            <label>Total Classes Conducted</label>
+            <input type="number" id="totalClasses" min="1"
+                   placeholder="Example: 60">
+        </div>
+
+        <div class="input-box">
+            <label>Classes Attended</label>
+            <input type="number" id="attendedClasses" min="0"
+                   placeholder="Example: 45">
+        </div>
+
+        <div class="input-box">
+            <label>Upcoming Classes</label>
+            <input type="number" id="upcomingClasses" min="0"
+                   placeholder="Example: 20">
+        </div>
+
+        <div class="input-box">
+            <label>Required Attendance (%)</label>
+            <input type="number" id="requiredAttendance"
+                   value="75" min="1" max="100">
+        </div>
+
+    </div>
+
+    <button onclick="predictAttendance()">
+        🔮 Predict Attendance
+    </button>
+
+    <div class="result" id="result">
+
+        <h2>📊 Prediction Result</h2>
+
+        <div class="cards">
+
+            <div class="card">
+                <h3>Student</h3>
+                <p id="nameResult">-</p>
+            </div>
+
+            <div class="card">
+                <h3>Current Attendance</h3>
+                <p id="currentResult">-</p>
+            </div>
+
+            <div class="card">
+                <h3>Predicted Attendance</h3>
+                <p id="predictedResult">-</p>
+            </div>
+
+        </div>
+
+        <div class="prediction" id="predictionResult"></div>
+
+        <p class="message" id="messageResult"></p>
+
+    </div>
+
+</div>
+
+
+<script>
+
+function predictAttendance() {
+
+    let name = document.getElementById("studentName").value;
+
+    let total = Number(
+        document.getElementById("totalClasses").value
+    );
+
+    let attended = Number(
+        document.getElementById("attendedClasses").value
+    );
+
+    let upcoming = Number(
+        document.getElementById("upcomingClasses").value
+    );
+
+    let required = Number(
+        document.getElementById("requiredAttendance").value
+    );
+
+
+    // Validation
+
+    if (name === "" || total <= 0 || attended < 0 ||
+        upcoming < 0 || required <= 0) {
+
+        alert("Please enter all details correctly.");
+        return;
+    }
+
+    if (attended > total) {
+
+        alert("Classes attended cannot be greater than total classes.");
+        return;
+    }
+
+
+    // Current attendance
+
+    let currentAttendance = (attended / total) * 100;
+
+
+    // Assume student attends all upcoming classes
+
+    let futureAttended = attended + upcoming;
+
+    let futureTotal = total + upcoming;
+
+    let predictedAttendance =
+        (futureAttended / futureTotal) * 100;
+
+
+    // Display values
+
+    document.getElementById("nameResult").innerText = name;
+
+    document.getElementById("currentResult").innerText =
+        currentAttendance.toFixed(2) + "%";
+
+    document.getElementById("predictedResult").innerText =
+        predictedAttendance.toFixed(2) + "%";
+
+
+    let predictionBox =
+        document.getElementById("predictionResult");
+
+    let message =
+        document.getElementById("messageResult");
+
+
+    predictionBox.className = "prediction";
+
+
+    // AI-style classification
+
+    if (predictedAttendance >= required + 5) {
+
+        predictionBox.innerText = "🟢 SAFE";
+
+        predictionBox.classList.add("safe");
+
+        message.innerText =
+            "Your predicted attendance is comfortably above the required percentage.";
+
+    }
+
+    else if (predictedAttendance >= required) {
+
+        predictionBox.innerText = "🟡 WARNING";
+
+        predictionBox.classList.add("warning");
+
+        message.innerText =
+            "You are meeting the required attendance, but try not to miss upcoming classes.";
+
+    }
+
+    else {
+
+        predictionBox.innerText = "🔴 ATTENDANCE SHORTAGE";
+
+        predictionBox.classList.add("shortage");
+
+        message.innerText =
+            "Your predicted attendance is below the required percentage. You need to attend more classes.";
+
+    }
+
+
+    document.getElementById("result").style.display = "block";
+}
+
+</script>
+
+</body>
+</html>
+```
